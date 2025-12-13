@@ -78,7 +78,7 @@ Transform any camera device into an instant IP registration tool. Capture photos
 
 4. **Add Story Protocol Network to MetaMask**
    - Network Name: Story Aeneid Testnet
-   - RPC URL: https://aeneid-testnet.storyrpc.io
+   - RPC URL: https://aeneid.storyrpc.io
    - Chain ID: 1315
    - Currency Symbol: IP
    - Explorer: https://aeneid.explorer.story.foundation
@@ -162,26 +162,50 @@ This project qualifies for the **ABV.dev GenAI IP Registration Challenge**:
 
 ## Roadmap
 
-### MVP (Current)
+### MVP (Completed ✅)
 - [x] Camera capture (photo & video)
-- [x] IPFS upload
-- [x] Story Protocol IP registration
-- [x] Wallet integration
-- [x] Basic UI/UX
+- [x] IPFS upload via Pinata
+- [x] Story Protocol SPG integration
+- [x] One-transaction IP registration
+- [x] Wallet integration (MetaMask)
+- [x] SPG NFT Contract deployment
+- [x] IP asset dashboard with gallery
+- [x] Story Protocol Explorer integration
+- [x] Modern UI/UX with Tailwind CSS
 
-### Phase 2 (Next Steps)
-- [ ] NFT contract deployment
-- [ ] AI remix interface with ABV.dev
+### Phase 2 (In Progress 🚧)
+- [x] AI remix interface UI
+- [x] ABV.dev service integration
+- [ ] Complete AI remix workflow testing
 - [ ] Derivative IP registration
-- [ ] IP asset gallery
-- [ ] Royalty tracking dashboard
+- [ ] Royalty tracking analytics
 
-### Phase 3 (Future)
+### Phase 3 (Future 🔮)
 - [ ] Mobile app (React Native)
-- [ ] IoT device integration
-- [ ] Multi-chain support
-- [ ] IP marketplace
-- [ ] Advanced analytics
+- [ ] IoT device integration (cameras, drones)
+- [ ] Multi-chain support (Story mainnet)
+- [ ] IP marketplace for trading
+- [ ] Advanced analytics dashboard
+- [ ] Creator collaboration features
+- [ ] Batch IP registration
+
+### Production Ready
+- [ ] Smart contract security audit
+- [ ] Gas optimization
+- [ ] Rate limiting & API quotas
+- [ ] Error tracking (Sentry)
+- [ ] Performance monitoring
+- [ ] User analytics
+
+### SPG NFT Contract Address (deployed for testing):
+0x2744f9C55BDfc4E9C53b4dC05818c50204d4cd81
+
+Token on StoryScan: https://aeneid.storyscan.io/token/0x2744f9C55BDfc4E9C53b4dC05818c50204d4cd81
+
+✅ Success! IP Asset registered!
+
+IP Asset ID: 0x9e585A2F132C3A352D83B63ccB75EDDC410F7689
+View on Explorer: https://aeneid.explorer.story.foundation/ipa/0x9e585A2F132C3A352D83B63ccB75EDDC410F7689
 
 ## Resources
 
