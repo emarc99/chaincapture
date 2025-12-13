@@ -1,65 +1,72 @@
-import { NFTStorage, File as NFTFile, Blob as NFTBlob } from 'nft.storage'
+import { PinataSDK } from 'pinata-web3'
 import { IPFS_CONFIG } from '@/utils/constants'
 import { IPMetadata } from '@/types'
 
-// Initialize NFT.Storage client (lazy - only when needed)
-let nftStorageClient: NFTStorage | null = null
+// Initialize Pinata client (lazy - only when needed)
+let pinataClient: PinataSDK | null = null
 
-const getNFTStorageClient = () => {
-    if (!IPFS_CONFIG.nftStorageKey) {
+const getPinataClient = () => {
+    if (!IPFS_CONFIG.pinataApiKey) {
         throw new Error(
-            'NFT.Storage API key is not configured. ' +
-            'Please add NEXT_PUBLIC_NFT_STORAGE_KEY to your .env.local file. ' +
-            'Get a free API key at https://nft.storage'
+            'Pinata API key is not configured. ' +
+            'Please add PINATA_JWT to your .env.local file. ' +
+            'Get a free API key at https://pinata.cloud (1GB free tier)'
         )
     }
 
-    if (!nftStorageClient) {
-        nftStorageClient = new NFTStorage({ token: IPFS_CONFIG.nftStorageKey })
+    if (!pinataClient) {
+        pinataClient = new PinataSDK({
+            pinataJwt: IPFS_CONFIG.pinataApiKey,
+        })
     }
 
-    return nftStorageClient
+    return pinataClient
 }
 
 /**
- * Upload a media file (image or video) to IPFS
+ * Upload a media file (image or video) to IPFS via Pinata
  */
 export async function uploadMediaToIPFS(file: Blob, filename: string): Promise<string> {
     try {
-        const client = getNFTStorageClient()
+        const client = getPinataClient()
 
-        // Convert Blob to NFT.Storage File
-        const nftFile = new NFTFile([file], filename, { type: file.type })
+        console.log('Uploading media to Pinata IPFS...', { filename, size: file.size })
 
-        // Store the file
-        const cid = await client.storeBlob(nftFile)
+        // Convert Blob to File
+        const mediaFile = new File([file], filename, { type: file.type })
 
-        return `ipfs://${cid}`
+        // Upload to Pinata
+        const upload = await client.upload.file(mediaFile)
+
+        const ipfsHash = upload.IpfsHash
+        console.log('✅ Media uploaded to IPFS:', ipfsHash)
+
+        return `ipfs://${ipfsHash}`
     } catch (error) {
         console.error('Error uploading media to IPFS:', error)
-        throw new Error('Failed to upload media to IPFS')
+        throw new Error('Failed to upload media to IPFS: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
 }
 
 /**
- * Upload IP metadata as JSON to IPFS
+ * Upload IP metadata as JSON to IPFS via Pinata
  */
 export async function uploadMetadataToIPFS(metadata: IPMetadata): Promise<string> {
     try {
-        const client = getNFTStorageClient()
+        const client = getPinataClient()
 
-        // Create JSON blob
-        const metadataJSON = JSON.stringify(metadata, null, 2)
-        const blob = new Blob([metadataJSON], { type: 'application/json' })
-        const nftBlob = new NFTBlob([blob])
+        console.log('Uploading metadata to Pinata IPFS...', { title: metadata.title })
 
-        // Store the metadata
-        const cid = await client.storeBlob(nftBlob)
+        // Upload JSON directly
+        const upload = await client.upload.json(metadata)
 
-        return `ipfs://${cid}`
+        const ipfsHash = upload.IpfsHash
+        console.log('✅ Metadata uploaded to IPFS:', ipfsHash)
+
+        return `ipfs://${ipfsHash}`
     } catch (error) {
         console.error('Error uploading metadata to IPFS:', error)
-        throw new Error('Failed to upload metadata to IPFS')
+        throw new Error('Failed to upload metadata to IPFS: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
 }
 
@@ -72,11 +79,15 @@ export async function uploadToIPFS(
     metadata: IPMetadata
 ): Promise<{ mediaUri: string; metadataUri: string }> {
     try {
+        console.log('Starting IPFS upload process...')
+
         // Upload media and metadata in parallel
         const [mediaUri, metadataUri] = await Promise.all([
             uploadMediaToIPFS(mediaBlob, filename),
             uploadMetadataToIPFS(metadata),
         ])
+
+        console.log('✅ IPFS upload complete:', { mediaUri, metadataUri })
 
         return { mediaUri, metadataUri }
     } catch (error) {
@@ -91,7 +102,8 @@ export async function uploadToIPFS(
 export function ipfsToHttp(ipfsUri: string): string {
     if (ipfsUri.startsWith('ipfs://')) {
         const cid = ipfsUri.replace('ipfs://', '')
-        return `https://nftstorage.link/ipfs/${cid}`
+        // Use Pinata's gateway for fast access
+        return `https://gateway.pinata.cloud/ipfs/${cid}`
     }
     return ipfsUri
 }

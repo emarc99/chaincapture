@@ -23,11 +23,9 @@ export const ABV_CONFIG = {
   baseUrl: process.env.ABV_BASE_URL || 'https://api.abv.dev',
 }
 
-// IPFS Configuration
+// IPFS Configuration (using Pinata)
 export const IPFS_CONFIG = {
-  nftStorageKey: process.env.NEXT_PUBLIC_NFT_STORAGE_KEY || '',
-  pinataApiKey: process.env.PINATA_API_KEY || '',
-  pinataSecretKey: process.env.PINATA_SECRET_KEY || '',
+  pinataApiKey: process.env.PINATA_JWT || '', // Pinata JWT token
 }
 
 // PIL (Programmable IP License) Terms

@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { CapturedMedia, MediaType } from '@/types'
+import { CapturedMedia } from '@/types'
 import { MEDIA_TYPES } from '@/utils/constants'
+
+// Re-export MediaType for external use
+export type MediaType = typeof MEDIA_TYPES[keyof typeof MEDIA_TYPES]
 
 export function useCamera() {
     const [isCapturing, setIsCapturing] = useState(false)
@@ -57,7 +60,7 @@ export function useCamera() {
     /**
      * Capture a photo from the video stream
      */
-    const capturePhoto = useCallback((): CapturedMedia | null => {
+    const capturePhoto = useCallback(async (): Promise<CapturedMedia | null> => {
         if (!videoRef.current || !stream) {
             setError('Camera not ready')
             return null
@@ -65,40 +68,54 @@ export function useCamera() {
 
         try {
             const video = videoRef.current
+
+            // Wait for next video frame to ensure it's painted
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        resolve()
+                    })
+                })
+            })
+
             const canvas = document.createElement('canvas')
-            canvas.width = video.videoWidth
-            canvas.height = video.videoHeight
+            canvas.width = video.videoWidth || 640
+            canvas.height = video.videoHeight || 480
 
             const ctx = canvas.getContext('2d')
             if (!ctx) {
                 throw new Error('Failed to get canvas context')
             }
 
-            ctx.drawImage(video, 0, 0)
+            // Draw the current video frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-            return new Promise<CapturedMedia>((resolve) => {
+            // Convert canvas to blob
+            const blob = await new Promise<Blob | null>((resolve) => {
                 canvas.toBlob((blob) => {
-                    if (!blob) {
-                        setError('Failed to capture photo')
-                        resolve(null as any)
-                        return
-                    }
-
-                    const url = URL.createObjectURL(blob)
-                    const media: CapturedMedia = {
-                        id: `photo-${Date.now()}`,
-                        type: MEDIA_TYPES.IMAGE,
-                        blob,
-                        url,
-                        timestamp: Date.now(),
-                    }
-
-                    resolve(media)
+                    resolve(blob)
                 }, 'image/jpeg', 0.95)
             })
+
+            if (!blob) {
+                setError('Failed to capture photo')
+                return null
+            }
+
+            const url = URL.createObjectURL(blob)
+            const media: CapturedMedia = {
+                id: `photo-${Date.now()}`,
+                type: MEDIA_TYPES.IMAGE,
+                blob,
+                url,
+                timestamp: Date.now(),
+            }
+
+            setError(null)
+            return media
         } catch (err) {
             console.error('Error capturing photo:', err)
-            setError('Failed to capture photo')
+            setError('Failed to capture photo: ' + (err instanceof Error ? err.message : 'Unknown error'))
             return null
         }
     }, [stream])

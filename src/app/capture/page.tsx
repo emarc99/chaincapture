@@ -6,7 +6,6 @@ import { CameraCapture } from '@/components/CameraCapture'
 import { MediaPreview } from '@/components/MediaPreview'
 import { WalletConnect } from '@/components/WalletConnect'
 import { CapturedMedia, IPMetadata } from '@/types'
-import { uploadToIPFS, ipfsToHttp } from '@/services/ipfsService'
 
 export default function CapturePage() {
     const [capturedMedia, setCapturedMedia] = useState<CapturedMedia | null>(null)
@@ -22,9 +21,23 @@ export default function CapturePage() {
         setUploadStatus('Uploading to IPFS...')
 
         try {
-            // 1. Upload media and metadata to IPFS
-            const filename = `${metadata.title.replace(/\s+/g, '-')}.${media.type === 'image' ? 'jpg' : 'webm'}`
-            const { mediaUri, metadataUri } = await uploadToIPFS(media.blob, filename, metadata)
+            // 1. Upload media and metadata to IPFS via API route
+            const formData = new FormData()
+            formData.append('file', media.blob, `${metadata.title.replace(/\s+/g, '-')}.${media.type === 'image' ? 'jpg' : 'webm'}`)
+            formData.append('metadata', JSON.stringify(metadata))
+
+            const ipfsResponse = await fetch('/api/upload-ipfs', {
+                method: 'POST',
+                body: formData,
+            })
+
+            const ipfsResult = await ipfsResponse.json()
+
+            if (!ipfsResult.success) {
+                throw new Error(ipfsResult.error || 'Failed to upload to IPFS')
+            }
+
+            const { mediaUri, metadataUri } = ipfsResult
 
             setUploadStatus('Minting NFT and registering IP...')
 
@@ -42,12 +55,23 @@ export default function CapturePage() {
             const result = await response.json()
 
             if (result.success) {
-                setUploadStatus(`✅ Success! IP Asset ID: ${result.ipId}`)
+                setUploadStatus(
+                    `✅ Success! IP Asset registered!\n\n` +
+                    `IP Asset ID: ${result.ipId}\n` +
+                    `View on Explorer: ${result.explorerUrl || `https://aeneid.explorer.story.foundation/ipa/${result.ipId}`}`
+                )
 
-                // Wait a moment, then redirect to dashboard
+                // Open explorer in new tab
+                const explorerUrl = result.explorerUrl || `https://aeneid.explorer.story.foundation/ipa/${result.ipId}`
+                console.log('🔗 View your IP Asset:', explorerUrl)
+
+                // Copy IP ID to clipboard for easy access
+                navigator.clipboard.writeText(result.ipId).catch(() => { })
+
+                // Wait longer so user can see the link
                 setTimeout(() => {
                     window.location.href = '/dashboard'
-                }, 3000)
+                }, 8000)
             } else {
                 throw new Error(result.error || 'Failed to register IP')
             }
@@ -97,10 +121,10 @@ export default function CapturePage() {
                     {/* Upload Status */}
                     {uploadStatus && (
                         <div className={`max-w-2xl mx-auto p-4 rounded-xl ${uploadStatus.includes('❌') ? 'bg-red-500/20 border border-red-500' :
-                                uploadStatus.includes('✅') ? 'bg-green-500/20 border border-green-500' :
-                                    'bg-blue-500/20 border border-blue-500'
+                            uploadStatus.includes('✅') ? 'bg-green-500/20 border border-green-500' :
+                                'bg-blue-500/20 border border-blue-500'
                             }`}>
-                            <p className="text-center text-white font-semibold">{uploadStatus}</p>
+                            <p className="text-center text-white font-semibold whitespace-pre-wrap break-all">{uploadStatus}</p>
                         </div>
                     )}
 
